@@ -1,36 +1,24 @@
 import React, { useState } from 'react';
-import { useNavigate, Link } from 'react-router-dom';
+import { useNavigate } from 'react-router-dom';
 import { LogIn } from 'lucide-react';
 
-const Login = () => {
+const CounselorLogin = () => {
     const [email, setEmail] = useState('');
     const [password, setPassword] = useState('');
     const [error, setError] = useState('');
-    const [message, setMessage] = useState('');
     const navigate = useNavigate();
 
     const handleLogin = (e) => {
         e.preventDefault();
         setError('');
-        setMessage('');
 
-        // Bypassing Firebase completely for local frontend test logic
-        if (email.toLowerCase() === "student@demo.com" && password === "password123") {
-            const userData = { email, name: "Current Student", role: "student", id: "1" };
-            localStorage.setItem('counseling_currentUser', JSON.stringify(userData));
-            navigate('/dashboard');
+        if (email.toLowerCase() === "counselor@demo.com" && password === "password123") {
+            const userData = { email, name: "Dr. Smith", role: "counselor", id: "counselor-01" };
+            localStorage.setItem('counselor_currentUser', JSON.stringify(userData));
+            navigate('/counselor-dashboard');
         } else {
-            setError('Invalid credentials. Please use: student@demo.com / password123');
+            setError('Invalid credentials. Please use: counselor@demo.com / password123');
         }
-    };
-
-    const handleForgotPassword = () => {
-        if (!email) {
-            setError("Please enter your email to reset password.");
-            return;
-        }
-        setMessage("Password reset email sent! (Demo mode)");
-        setError('');
     };
 
     return (
@@ -40,7 +28,7 @@ const Login = () => {
                     <div className="bg-secondary/30 text-primary p-3 rounded-full inline-block mb-4">
                         <LogIn size={32} />
                     </div>
-                    <h1 className="text-2xl font-bold text-gray-800">Welcome Back</h1>
+                    <h1 className="text-2xl font-bold text-gray-800">Counselor Portal</h1>
                     <p className="text-gray-500 mt-2">Intelligent College Counseling System</p>
                 </div>
 
@@ -49,15 +37,10 @@ const Login = () => {
                         {error}
                     </div>
                 )}
-                {message && (
-                    <div className="bg-green-50 text-green-600 p-3 rounded-lg mb-6 text-sm text-center">
-                        {message}
-                    </div>
-                )}
                 
                 <div className="bg-amber-50 border border-amber-200 text-amber-800 px-4 py-3 rounded-xl mb-6 text-sm font-medium">
                     Demo Credentials:<br/>
-                    Email: <span className="font-bold">student@demo.com</span><br/>
+                    Email: <span className="font-bold">counselor@demo.com</span><br/>
                     Password: <span className="font-bold">password123</span>
                 </div>
 
@@ -86,34 +69,23 @@ const Login = () => {
                         />
                     </div>
 
-                    <div className="flex justify-end mt-2">
-                        <button type="button" onClick={handleForgotPassword} className="text-sm text-primary hover:underline">
-                            Forgot Password?
-                        </button>
-                    </div>
-
                     <button
                         type="submit"
                         className="w-full bg-primary hover:bg-secondary text-white hover:text-primary font-medium py-3 rounded-lg transition-colors shadow-lg shadow-primary/30"
                     >
-                        Login as Student
+                        Login
+                    </button>
+                    <button
+                        type="button"
+                        onClick={() => navigate('/')}
+                        className="w-full mt-3 bg-card hover:bg-gray-50 text-gray-500 hover:text-gray-700 border border-gray-200 font-medium py-3 rounded-lg transition-colors"
+                    >
+                        Back to Student Login
                     </button>
                 </form>
-
-                <div className="mt-8 pt-6 border-t border-gray-100 flex flex-col items-center gap-4">
-                    <p className="text-sm text-gray-600">
-                        New user?{' '}
-                        <Link to="/register" className="text-primary hover:text-secondary font-semibold hover:underline">
-                            Register here
-                        </Link>
-                    </p>
-                    <Link to="/counselor-login" className="text-sm font-bold text-gray-500 hover:text-primary transition-colors hover:underline">
-                        → Access Counselor Portal
-                    </Link>
-                </div>
             </div>
         </div>
     );
 };
 
-export default Login;
+export default CounselorLogin;

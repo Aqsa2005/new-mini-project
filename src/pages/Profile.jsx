@@ -17,7 +17,7 @@ const Profile = () => {
     }, [navigate]);
 
     return (
-        <div className="flex min-h-screen bg-gray-50/50">
+        <div className="flex min-h-screen bg-background">
             <Sidebar />
 
             <main className="flex-1 ml-64 p-8">
@@ -26,9 +26,9 @@ const Profile = () => {
                     <p className="text-gray-500 mt-2 text-lg">Manage your personal information.</p>
                 </header>
 
-                <div className="max-w-2xl bg-white rounded-2xl shadow-sm border border-gray-100 p-8">
+                <div className="max-w-2xl bg-card rounded-2xl shadow-sm border border-gray-100 p-8">
                     <div className="flex items-center space-x-6 mb-8 pb-8 border-b border-gray-100">
-                        <div className="w-24 h-24 bg-gradient-to-br from-blue-100 to-green-100 rounded-full flex items-center justify-center text-blue-600 text-3xl font-bold shadow-inner">
+                        <div className="w-24 h-24 bg-gradient-to-br from-secondary to-background rounded-full flex items-center justify-center text-primary text-3xl font-bold shadow-inner">
                             {user.name ? user.name.charAt(0).toUpperCase() : 'U'}
                         </div>
                         <div>
@@ -39,7 +39,7 @@ const Profile = () => {
 
                     <div className="space-y-6">
                         <div className="flex items-center space-x-4">
-                            <div className="p-3 bg-gray-50 rounded-xl text-gray-400">
+                            <div className="p-3 bg-primary/10 rounded-xl text-primary/70">
                                 <User size={20} />
                             </div>
                             <div>
@@ -49,7 +49,7 @@ const Profile = () => {
                         </div>
 
                         <div className="flex items-center space-x-4">
-                            <div className="p-3 bg-gray-50 rounded-xl text-gray-400">
+                            <div className="p-3 bg-primary/10 rounded-xl text-primary/70">
                                 <Mail size={20} />
                             </div>
                             <div>
@@ -59,7 +59,7 @@ const Profile = () => {
                         </div>
 
                         <div className="flex items-center space-x-4">
-                            <div className="p-3 bg-gray-50 rounded-xl text-gray-400">
+                            <div className="p-3 bg-primary/10 rounded-xl text-primary/70">
                                 <Hash size={20} />
                             </div>
                             <div>

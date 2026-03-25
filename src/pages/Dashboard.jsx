@@ -1,6 +1,6 @@
-import React, { useEffect } from 'react';
+import React, { useEffect, useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
-import { Bot, UserRound, PenLine, Headphones, Activity, Target, Sparkles } from 'lucide-react';
+import { Bot, UserRound, PenLine, Headphones, Activity, Target, Sparkles, X } from 'lucide-react';
 import Sidebar from '../components/Sidebar';
 import MoodChart from '../components/MoodChart';
 
@@ -17,7 +17,7 @@ const Dashboard = () => {
     const user = JSON.parse(localStorage.getItem('counseling_currentUser')) || {};
 
     return (
-        <div className="flex min-h-screen bg-gray-50/50">
+        <div className="flex min-h-screen bg-background">
             <Sidebar />
 
             <main className="flex-1 ml-64 p-8">
@@ -29,27 +29,31 @@ const Dashboard = () => {
                 {/* Top Cards: Chat Options */}
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
                     <Link to="/chat-ai" className="block group">
-                        <div className="bg-gradient-to-br from-blue-500 to-blue-600 rounded-2xl p-6 text-white shadow-lg shadow-blue-500/20 transform transition-all duration-300 group-hover:-translate-y-1 group-hover:shadow-blue-500/40">
-                            <div className="bg-white/20 w-12 h-12 rounded-xl flex items-center justify-center mb-4 backdrop-blur-sm">
-                                <Bot size={28} />
+                        <div className="bg-gradient-to-br from-secondary to-background rounded-2xl p-6 text-primary shadow-lg shadow-secondary/20 transform transition-all duration-300 group-hover:-translate-y-1 group-hover:shadow-secondary/40 border border-secondary/30 h-full flex flex-col justify-between">
+                            <div>
+                                <div className="bg-primary/10 w-12 h-12 rounded-xl flex items-center justify-center mb-4 backdrop-blur-sm text-primary">
+                                    <Bot size={28} />
+                                </div>
+                                <h2 className="text-2xl font-bold mb-1">Chat with AI</h2>
+                                <p className="text-primary/80 mb-4 font-medium">Start your conversation anytime</p>
                             </div>
-                            <h2 className="text-2xl font-bold mb-1">Chat with AI</h2>
-                            <p className="text-blue-100 mb-4 opacity-90">Start your conversation anytime</p>
-                            <div className="flex items-center text-sm font-medium bg-white/20 inline-flex px-4 py-2 rounded-lg backdrop-blur-sm">
+                            <div className="flex items-center text-sm font-bold bg-primary/10 inline-flex px-4 py-2 rounded-lg backdrop-blur-sm w-max">
                                 Open AI Chat <span className="ml-2">→</span>
                             </div>
                         </div>
                     </Link>
 
                     <Link to="/chat-counselor" className="block group">
-                        <div className="bg-gradient-to-br from-green-500 to-emerald-600 rounded-2xl p-6 text-white shadow-lg shadow-green-500/20 transform transition-all duration-300 group-hover:-translate-y-1 group-hover:shadow-green-500/40">
-                            <div className="bg-white/20 w-12 h-12 rounded-xl flex items-center justify-center mb-4 backdrop-blur-sm">
-                                <UserRound size={28} />
+                        <div className="bg-gradient-to-br from-secondary to-background rounded-2xl p-6 text-primary shadow-lg shadow-secondary/20 transform transition-all duration-300 group-hover:-translate-y-1 group-hover:shadow-secondary/40 border border-secondary/30 h-full flex flex-col justify-between">
+                            <div>
+                                <div className="bg-primary/10 w-12 h-12 rounded-xl flex items-center justify-center mb-4 backdrop-blur-sm text-primary">
+                                    <UserRound size={28} />
+                                </div>
+                                <h2 className="text-2xl font-bold mb-1">Chat with Counselor</h2>
+                                <p className="text-primary/80 mb-4 font-medium">Connect closely via secure messaging</p>
                             </div>
-                            <h2 className="text-2xl font-bold mb-1">Chat with Counselor</h2>
-                            <p className="text-green-100 mb-4 opacity-90">Connect with a professional</p>
-                            <div className="flex items-center text-sm font-medium bg-white/20 inline-flex px-4 py-2 rounded-lg backdrop-blur-sm">
-                                Book / Chat <span className="ml-2">→</span>
+                            <div className="flex items-center text-sm font-bold bg-primary/10 inline-flex px-4 py-2 rounded-lg backdrop-blur-sm w-max">
+                                Open Messaging <span className="ml-2">→</span>
                             </div>
                         </div>
                     </Link>
@@ -57,7 +61,7 @@ const Dashboard = () => {
 
                 {/* Mood Analysis Section */}
                 <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-8">
-                    <div className="lg:col-span-2 bg-white rounded-2xl p-6 shadow-sm border border-gray-100">
+                    <div className="lg:col-span-2 bg-card rounded-2xl p-6 shadow-md border border-gray-100">
                         <h3 className="text-lg font-bold text-gray-800 mb-6">Overall Mood Trend: Your Week in Review</h3>
                         <div className="h-64">
                             <MoodChart />
@@ -65,7 +69,7 @@ const Dashboard = () => {
                     </div>
 
                     <div className="space-y-4">
-                        <div className="bg-white p-5 rounded-2xl shadow-sm border border-gray-100 flex items-center space-x-4">
+                        <div className="bg-card p-5 rounded-2xl shadow-md border border-gray-100 flex items-center space-x-4">
                             <div className="bg-blue-50 p-3 rounded-xl text-blue-600">
                                 <Activity size={24} />
                             </div>
@@ -75,7 +79,7 @@ const Dashboard = () => {
                             </div>
                         </div>
 
-                        <div className="bg-white p-5 rounded-2xl shadow-sm border border-gray-100 flex items-center space-x-4">
+                        <div className="bg-card p-5 rounded-2xl shadow-md border border-gray-100 flex items-center space-x-4">
                             <div className="bg-purple-50 p-3 rounded-xl text-purple-600">
                                 <Target size={24} />
                             </div>
@@ -85,7 +89,7 @@ const Dashboard = () => {
                             </div>
                         </div>
 
-                        <div className="bg-white p-5 rounded-2xl shadow-sm border border-gray-100 flex items-center space-x-4">
+                        <div className="bg-card p-5 rounded-2xl shadow-md border border-gray-100 flex items-center space-x-4">
                             <div className="bg-amber-50 p-3 rounded-xl text-amber-600">
                                 <Sparkles size={24} />
                             </div>
@@ -102,7 +106,7 @@ const Dashboard = () => {
                     <h3 className="text-xl font-bold text-gray-800 mb-4">Wellness Tools</h3>
                     <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
                         {/* Journal */}
-                        <div className="bg-white p-6 rounded-2xl shadow-sm border border-gray-100 group hover:border-blue-200 transition-colors">
+                        <div className="bg-card p-6 rounded-2xl shadow-md border border-gray-100 group hover:border-blue-200 transition-colors">
                             <div className="flex justify-between items-start mb-4">
                                 <div className="flex items-center space-x-3">
                                     <div className="bg-blue-50 text-blue-600 p-2 rounded-lg">
@@ -123,7 +127,7 @@ const Dashboard = () => {
                         </div>
 
                         {/* Meditation */}
-                        <div className="bg-white p-6 rounded-2xl shadow-sm border border-gray-100 group hover:border-green-200 transition-colors">
+                        <div className="bg-card p-6 rounded-2xl shadow-md border border-gray-100 group hover:border-green-200 transition-colors">
                             <div className="flex justify-between items-start mb-6">
                                 <div className="flex items-center space-x-3">
                                     <div className="bg-green-50 text-green-600 p-2 rounded-lg">
