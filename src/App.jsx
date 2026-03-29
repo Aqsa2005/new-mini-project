@@ -11,6 +11,7 @@ import StudentChat from "./pages/StudentChat";
 import Notifications from "./pages/Notifications";
 import Settings from "./pages/Settings";
 import StudentSlotManagement from "./pages/StudentSlotManagement";
+import StudentNotifications from "./pages/StudentNotifications";
 import AIChatSummary from "./pages/AIChatSummary";
 import TutorLogin from "./pages/TutorLogin";
 import TutorDashboard from "./pages/TutorDashboard";
@@ -30,6 +31,7 @@ function App() {
           <Route path="/chat-counselor" element={<ChatCounselor />} />
           <Route path="/profile" element={<Profile />} />
           <Route path="/slot-management" element={<StudentSlotManagement />} />
+          <Route path="/notifications" element={<StudentNotifications />} />
           
           {/* Counselor Routes */}
           <Route path="/counselor-login" element={<CounselorLogin />} />

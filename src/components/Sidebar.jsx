@@ -1,6 +1,6 @@
 import React from 'react';
 import { NavLink, useNavigate } from 'react-router-dom';
-import { LayoutDashboard, User, LogOut, CalendarDays } from 'lucide-react';
+import { LayoutDashboard, User, LogOut, CalendarDays, Bell } from 'lucide-react';
 
 const Sidebar = () => {
     const navigate = useNavigate();
@@ -32,6 +32,10 @@ const Sidebar = () => {
                 <NavLink to="/slot-management" className={navItemClass}>
                     <CalendarDays size={20} />
                     <span className="font-medium">Slot Management</span>
+                </NavLink>
+                <NavLink to="/notifications" className={navItemClass}>
+                    <Bell size={20} />
+                    <span className="font-medium">Notification</span>
                 </NavLink>
                 <NavLink to="/profile" className={navItemClass}>
                     <User size={20} />

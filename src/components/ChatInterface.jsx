@@ -1,5 +1,5 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { Send, Info, X } from 'lucide-react';
+import { Send, Info, X, CheckCircle, XCircle, Clock } from 'lucide-react';
 import { db } from '../firebaseConfig';
 import {
     collection, addDoc, query, orderBy,
@@ -17,6 +17,8 @@ const ChatInterface = ({ student }) => {
     const [messages, setMessages] = useState([]);
     const [input, setInput] = useState('');
     const [showModal, setShowModal] = useState(false);
+    const [chatMetadata, setChatMetadata] = useState(null);
+    const [isChatActive, setIsChatActive] = useState(false);
     const messagesEndRef = useRef(null);
 
     // Chat room ID = student's uid (same as ChatCounselor uses)
@@ -35,10 +37,96 @@ const ChatInterface = ({ student }) => {
         );
         const unsub = onSnapshot(q, (snapshot) => {
             const msgs = snapshot.docs.map(d => ({ id: d.id, ...d.data() }));
+            
+            // Fix: Re-sort to force pending messages to the bottom locally
+            msgs.sort((a, b) => {
+                const tA = a.createdAt?.toMillis ? a.createdAt.toMillis() : Date.now() + 100000;
+                const tB = b.createdAt?.toMillis ? b.createdAt.toMillis() : Date.now() + 100000;
+                return tA - tB;
+            });
+            
             setMessages(msgs);
         });
-        return () => unsub();
+
+        const chatUnsub = onSnapshot(doc(db, 'counselorChats', chatId), (docSnap) => {
+            if (docSnap.exists()) {
+                setChatMetadata(docSnap.data());
+            }
+        });
+
+        return () => {
+            unsub();
+            chatUnsub();
+        };
     }, [chatId]);
+
+    const isSlotApproved = chatMetadata?.slotStatus === 'approved' && chatMetadata?.approvedSlot;
+    
+    // Check if current time is within slot time
+    const checkSlotActive = () => {
+        if (!isSlotApproved) return false;
+        try {
+            const now = new Date();
+            const slotDate = new Date(`${chatMetadata.approvedSlot.date}T${chatMetadata.approvedSlot.time}`);
+            const ONE_HOUR = 60 * 60 * 1000;
+            return now >= slotDate && now <= new Date(slotDate.getTime() + ONE_HOUR);
+        } catch (e) {
+            return false;
+        }
+    };
+
+    useEffect(() => {
+        const interval = setInterval(() => {
+            setIsChatActive(checkSlotActive());
+        }, 10000);
+        setIsChatActive(checkSlotActive());
+        return () => clearInterval(interval);
+    }, [chatMetadata]);
+
+    const canChat = isSlotApproved && isChatActive;
+
+    const handleApproveSlot = async () => {
+        if (!chatMetadata?.requestedSlot) return;
+        
+        try {
+            await addDoc(collection(db, 'studentNotifications'), {
+                text: `Your chat slot for ${chatMetadata.requestedSlot.date} at ${chatMetadata.requestedSlot.time} has been approved.`,
+                type: 'slot_approval',
+                studentUid: student.id || chatMetadata?.studentId || 'unknown',
+                studentEmail: chatMetadata?.studentEmail || student.email || 'unknown',
+                read: false,
+                createdAt: serverTimestamp()
+            });
+            
+            await updateDoc(doc(db, 'counselorChats', chatId), {
+                slotStatus: 'approved',
+                approvedSlot: chatMetadata.requestedSlot,
+                requestedSlot: null // clear requested
+            });
+        } catch (e) {
+            console.error("Error approving slot:", e);
+        }
+    };
+
+    const handleRejectSlot = async () => {
+        try {
+            await addDoc(collection(db, 'studentNotifications'), {
+                text: `Your requested chat slot was rejected. Please select another slot.`,
+                type: 'slot_rejection',
+                studentUid: student.id || chatMetadata?.studentId || 'unknown',
+                studentEmail: chatMetadata?.studentEmail || student.email || 'unknown',
+                read: false,
+                createdAt: serverTimestamp()
+            });
+            
+            await updateDoc(doc(db, 'counselorChats', chatId), {
+                slotStatus: 'pending',
+                requestedSlot: null
+            });
+        } catch (e) {
+            console.error("Error rejecting slot:", e);
+        }
+    };
 
     const handleSend = async (e) => {
         e.preventDefault();
@@ -65,8 +153,8 @@ const ChatInterface = ({ student }) => {
         await addDoc(collection(db, 'studentNotifications'), {
             text: 'New message from your counselor',
             type: 'message',
-            studentEmail: student.email,
-            studentUid: student.id,
+            studentUid: student.id || student.uid || chatMetadata?.studentId || 'unknown_uid',
+            studentEmail: chatMetadata?.studentEmail || student.email || 'unknown_email',
             read: false,
             createdAt: serverTimestamp()
         });
@@ -86,6 +174,32 @@ const ChatInterface = ({ student }) => {
                     <Info size={20} />
                 </button>
             </div>
+
+            {/* Slot Request Banner */}
+            {chatMetadata?.slotStatus === 'requested' && chatMetadata?.requestedSlot && (
+                <div className="bg-amber-50 border-b border-amber-200 p-3 flex items-center justify-between">
+                    <div className="flex items-center space-x-2 text-amber-800">
+                        <Clock size={18} />
+                        <span className="text-sm">
+                            Student requested a slot on <strong>{chatMetadata.requestedSlot.date}</strong> at <strong>{chatMetadata.requestedSlot.time}</strong>
+                        </span>
+                    </div>
+                    <div className="flex space-x-2">
+                        <button 
+                            onClick={handleApproveSlot}
+                            className="bg-green-500 hover:bg-green-600 text-white p-1.5 rounded flex items-center shadow-sm transition-colors text-sm font-medium px-3 flex-shrink-0"
+                        >
+                            <CheckCircle size={16} className="mr-1" /> Approve
+                        </button>
+                        <button 
+                            onClick={handleRejectSlot}
+                            className="bg-red-500 hover:bg-red-600 text-white p-1.5 rounded flex items-center shadow-sm transition-colors text-sm font-medium px-3 flex-shrink-0"
+                        >
+                            <XCircle size={16} className="mr-1" /> Reject
+                        </button>
+                    </div>
+                </div>
+            )}
 
             {/* Messages */}
             <div className="flex-1 p-4 overflow-y-auto bg-card/40">
@@ -110,18 +224,26 @@ const ChatInterface = ({ student }) => {
             </div>
 
             {/* Input */}
-            <div className="bg-card p-3 border-t border-gray-200/50">
+            <div className="bg-card p-3 border-t border-gray-200/50 flex flex-col">
+                {!canChat && (
+                    <div className="text-center text-xs text-amber-600 mb-2 font-medium">
+                        {isSlotApproved 
+                            ? `Chat will be available on ${chatMetadata.approvedSlot.date} at ${chatMetadata.approvedSlot.time} for 1 hour.` 
+                            : `You must approve a slot before chatting.`}
+                    </div>
+                )}
                 <form onSubmit={handleSend} className="flex items-center space-x-2">
                     <input
                         type="text"
                         value={input}
                         onChange={(e) => setInput(e.target.value)}
-                        placeholder="Type a message..."
-                        className="flex-1 bg-background border border-gray-200 text-gray-800 px-4 py-2 rounded-full focus:outline-none focus:ring-2 focus:ring-primary focus:bg-white transition-all text-[14px]"
+                        disabled={!canChat}
+                        placeholder={canChat ? "Type a message..." : "Chat restricted..."}
+                        className="flex-1 bg-background border border-gray-200 text-gray-800 px-4 py-2 rounded-full focus:outline-none focus:ring-2 focus:ring-primary focus:bg-white transition-all text-[14px] disabled:opacity-60 disabled:bg-gray-50"
                     />
                     <button
                         type="submit"
-                        disabled={!input.trim()}
+                        disabled={!input.trim() || !canChat}
                         className="bg-primary text-white p-2.5 rounded-full hover:bg-secondary hover:text-primary disabled:opacity-50 disabled:cursor-not-allowed transition-colors shadow-sm flex-shrink-0"
                     >
                         <Send size={18} className="ml-0.5" />

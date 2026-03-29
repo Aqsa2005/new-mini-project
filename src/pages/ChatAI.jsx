@@ -11,62 +11,10 @@ const formatTimestamp = (ts) => {
   return new Date().toLocaleString([], { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' });
 };
 
-function getBotReply(message, history = []) {
-  const msg = message.toLowerCase();
-  
-  const positiveKeywords = ['okay', 'fine', 'good', 'happy', 'better', 'well', 'great', 'fantastic', 'awesome', 'nice', 'alright', 'cool', 'calm'];
-  const negativeKeywords = ['sad', 'depressed', 'bad', 'anxious', 'awful', 'terrible', 'stressed', 'tired', 'lonely', 'upset', 'overwhelmed', 'not okay', 'horrible', 'crying', 'worried'];
-
-  const isPositive = positiveKeywords.some(kw => msg.includes(kw));
-  const isNegative = negativeKeywords.some(kw => msg.includes(kw));
-
-  const recentUserMsgs = history.filter(m => m.sender === 'user').slice(-3);
-  const wasNegative = recentUserMsgs.some(m => negativeKeywords.some(kw => m.text.toLowerCase().includes(kw)));
-  
-  const recentBotMsgs = history.filter(m => m.sender === 'bot').slice(-3);
-  const lastBotMsg = recentBotMsgs.length > 0 ? recentBotMsgs[recentBotMsgs.length - 1].text : '';
-
-  let reply = "";
-
-  if (isPositive && wasNegative) {
-    reply = "I'm so glad to hear you're feeling better now! What helped you improve your mood?";
-  } else if (isPositive) {
-    const options = [
-      "That's great to hear! Tell me more about what's going well.",
-      "I'm glad you're feeling positive today!",
-      "Awesome! Keep that positive energy going."
-    ];
-    reply = options[Math.floor(Math.random() * options.length)];
-  } else if (isNegative) {
-    const options = [
-      "I hear you, and it's completely okay to feel that way. Would you like to explore this more?",
-      "I'm sorry you're feeling that way. Remember, I'm here to listen.",
-      "That sounds really tough. Have you considered talking to one of our counselors to book a slot?"
-    ];
-    reply = options[Math.floor(Math.random() * options.length)];
-  } else if (msg.includes('hello') || msg.includes('hi') || msg.includes('hey')) {
-    reply = "Hello! How can I support you today?";
-  } else if (msg.includes('slot') || msg.includes('book')) {
-    reply = "You can book a slot with a counselor from the Slot Management section on your dashboard.";
-  } else {
-    const options = [
-      "I'm here to support you. Could you share a bit more?",
-      "I understand. What else is on your mind?",
-      "Thanks for sharing. How does that make you feel overall?"
-    ];
-    reply = options[Math.floor(Math.random() * options.length)];
-  }
-
-  if (reply === lastBotMsg) {
-    reply = "I see what you mean. We can explore that further whenever you're ready.";
-  }
-
-  return reply;
-}
-
 const ChatAI = () => {
   const [messages, setMessages] = useState([]);
   const [input, setInput] = useState('');
+  const [loading, setLoading] = useState(false);
   const bottomRef = useRef(null);
 
   useEffect(() => {
@@ -91,48 +39,82 @@ const ChatAI = () => {
 
   const sendMessage = async () => {
     const user = auth.currentUser;
-    if (!input.trim() || !user) return;
+    if (!input.trim() || !user || loading) return;
 
     const userMsg = input.trim();
     setInput('');
+    setLoading(true);
 
+    // Save user message to Firestore
     await addDoc(collection(db, 'aiChats', user.uid, 'messages'), {
       text: userMsg,
       sender: 'user',
       timestamp: serverTimestamp()
     });
 
-    const botReply = getBotReply(userMsg, messages);
-    await addDoc(collection(db, 'aiChats', user.uid, 'messages'), {
-      text: botReply,
-      sender: 'bot',
-      timestamp: serverTimestamp()
-    });
+    try {
+      // Call Express backend with an AbortController to prevent infinite hangs
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 45000); // 45 seconds max
 
-    // Save chat to localStorage for Counselor dashboard
-    const localUser = JSON.parse(localStorage.getItem('counseling_currentUser'));
-    if (localUser && localUser.email) {
-      const allAiChats = JSON.parse(localStorage.getItem('counseling_all_ai_chats')) || {};
-      if (!allAiChats[localUser.email]) {
-        allAiChats[localUser.email] = {
-          studentName: localUser.name || 'Student',
-          studentEmail: localUser.email,
-          messages: []
-        };
+      const res = await fetch('http://localhost:3001/api/chat', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ message: userMsg }),
+        signal: controller.signal
+      });
+
+      clearTimeout(timeoutId);
+
+      if (!res.ok) {
+        const errorText = await res.text().catch(() => 'No text');
+        throw new Error(`Server ${res.status}: ${errorText}`);
       }
-      allAiChats[localUser.email].messages.push(
-        { text: userMsg, sender: 'user', timestamp: new Date().toISOString(), id: Date.now() + '-user' },
-        { text: botReply, sender: 'bot', timestamp: new Date().toISOString(), id: Date.now() + '-bot' }
-      );
-      localStorage.setItem('counseling_all_ai_chats', JSON.stringify(allAiChats));
+
+      const result = await res.json();
+
+      if (!result || !result.reply) {
+         throw new Error('Invalid response format from server');
+      }
+
+      // Save bot reply to Firestore
+      await addDoc(collection(db, 'aiChats', user.uid, 'messages'), {
+        text: result.reply,
+        sender: 'bot',
+        timestamp: serverTimestamp()
+      });
+
+      // Write alert if negative sentiment detected
+      if (result.shouldAlert) {
+        await addDoc(collection(db, 'alerts'), {
+          studentId: user.uid,
+          studentName: user.displayName || user.email,
+          
+          studentEmail: user.email,
+          message: userMsg,
+          emotion: result.emotion,
+          severity: result.severity,
+          timestamp: serverTimestamp(),
+          read: false
+        });
+      }
+
+    } catch (err) {
+      console.error(err);
+      await addDoc(collection(db, 'aiChats', user.uid, 'messages'), {
+        text: `Error connecting to AI counselor: ${err.message}. Please restart backend or check api quota.`,
+        sender: 'bot',
+        timestamp: serverTimestamp()
+      });
+    } finally {
+      setLoading(false);
     }
   };
-
 
   return (
     <div className="flex flex-col h-screen bg-gray-50">
       <div className="bg-white border-b px-6 py-4 flex items-center space-x-3">
-        <Link to="/student-dashboard"><ArrowLeft size={20} /></Link>
+        <Link to="/dashboard"><ArrowLeft size={20} /></Link>
         <Bot size={22} className="text-primary" />
         <span className="font-semibold text-lg">AI Counselor</span>
       </div>
@@ -148,6 +130,15 @@ const ChatAI = () => {
             </div>
           </div>
         ))}
+
+        {loading && (
+          <div className="flex justify-start">
+            <div className="bg-white border border-gray-200 px-4 py-2 rounded-2xl rounded-bl-none shadow-sm text-sm text-gray-400 italic">
+              Thinking...
+            </div>
+          </div>
+        )}
+
         <div ref={bottomRef} />
       </div>
 
@@ -158,8 +149,13 @@ const ChatAI = () => {
           value={input}
           onChange={(e) => setInput(e.target.value)}
           onKeyDown={(e) => e.key === 'Enter' && sendMessage()}
+          disabled={loading}
         />
-        <button onClick={sendMessage} className="bg-primary text-white p-2 rounded-xl">
+        <button
+          onClick={sendMessage}
+          disabled={loading}
+          className="bg-primary text-white p-2 rounded-xl disabled:opacity-50"
+        >
           <Send size={18} />
         </button>
       </div>

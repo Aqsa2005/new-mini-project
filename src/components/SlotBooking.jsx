@@ -21,9 +21,16 @@ const SlotBooking = () => {
         // Listen to all slots
         const unsub = onSnapshot(collection(db, 'counselorSlots'), (snapshot) => {
             const allSlots = snapshot.docs.map(d => ({ id: d.id, ...d.data() }));
+            const now = new Date();
             const filtered = allSlots.filter(slot => {
                 const isAvailable = slot.status === 'available';
                 const isMyBooking = slot.bookedByUid === user.uid;
+                
+                const slotDateTime = new Date(`${slot.date}T${slot.startTime}`);
+                const isValidFuture = slotDateTime >= now;
+
+                if (isAvailable && !isValidFuture) return false;
+                
                 return isAvailable || isMyBooking;
             });
             filtered.sort((a, b) => {
@@ -40,18 +47,29 @@ const SlotBooking = () => {
     const handleBookSlot = async (slot) => {
         if (!user) return;
 
+        // Retrieve actual student name since Firebase Auth displayName might be empty
+        let studentName = user.displayName;
+        if (!studentName) {
+            try {
+                const localUser = JSON.parse(localStorage.getItem('counseling_currentUser') || '{}');
+                studentName = localUser.fullName || localUser.name || user.email;
+            } catch (e) {
+                studentName = user.email;
+            }
+        }
+
         // Update slot in Firestore
         await updateDoc(doc(db, 'counselorSlots', slot.id), {
             isBooked: true,
             status: 'booked',
-            bookedBy: user.displayName || user.email,
+            bookedBy: studentName,
             bookedByEmail: user.email,
             bookedByUid: user.uid
         });
 
         // Notify counselor
         await addDoc(collection(db, 'counselorNotifications'), {
-            text: `${user.displayName || user.email} booked a slot on ${formatDate(slot.date)} at ${formatTime(slot.startTime)}`,
+            text: `${studentName} booked a slot on ${formatDate(slot.date)} at ${formatTime(slot.startTime)}`,
             type: 'slot',
             studentEmail: user.email,
             studentUid: user.uid,

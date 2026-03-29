@@ -29,6 +29,13 @@ const SlotCalendar = () => {
         e.preventDefault();
         if (!date || !startTime || !endTime) return;
         if (startTime >= endTime) { alert("End time must be after start time"); return; }
+        
+        const selectedDateTime = new Date(`${date}T${startTime}`);
+        const now = new Date();
+        if (selectedDateTime < now) {
+            alert("Cannot create a slot for a past date and time.");
+            return;
+        }
 
         await addDoc(collection(db, 'counselorSlots'), {
             date,
@@ -56,7 +63,7 @@ const SlotCalendar = () => {
 
         // Notify the student via Firestore
         await addDoc(collection(db, 'studentNotifications'), {
-            text: 'Your slot booking has been confirmed ✅',
+            text: 'Counselor approved the slot. You can chat at the scheduled time.',
             type: 'update',
             studentEmail: bookedByEmail,
             read: false,

@@ -3,12 +3,12 @@ import { getAuth } from 'firebase/auth';
 import { getFirestore } from 'firebase/firestore';
 
 const firebaseConfig = {
-  apiKey: "AIzaSyD4lVo2wiMmoP6DObFFeB_P1k_ha_gUI9A",
-  authDomain: "college-counseling-a8355.firebaseapp.com",
-  projectId: "college-counseling-a8355",
-  storageBucket: "college-counseling-a8355.firebasestorage.app",
-  messagingSenderId: "252821780210",
-  appId: "1:252821780210:web:23848db63942f4d6f7026b"
+  apiKey: "AIzaSyCKp8tZEkqPMvazZ2VU9hiz79MPruDxnzw",
+  authDomain: "college-chatbot-system-ee2de.firebaseapp.com",
+  projectId: "college-chatbot-system-ee2de",
+  storageBucket: "college-chatbot-system-ee2de.firebasestorage.app",
+  messagingSenderId: "853193379355",
+  appId: "1:853193379355:web:61f46523e1a1b63893b2be"
 };
 
 const app = initializeApp(firebaseConfig);
